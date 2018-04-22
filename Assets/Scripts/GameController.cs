@@ -12,6 +12,7 @@ public class GameController : MonoBehaviour
 	public KnightController Knight;
 	public UnicornController Unicorn;
 
+	private readonly List<IPlayer> alivePlayers = new List<IPlayer>();
 	private readonly Dictionary<IPlayer, PointController> playersPositions = 
 		new Dictionary<IPlayer, PointController>();
 	
@@ -36,7 +37,7 @@ public class GameController : MonoBehaviour
 		}
 		
 		// Set all initial positions of all players
-		playersPositions.Add(Lizard, FieldPoints[1]);		
+		playersPositions.Add(Lizard, FieldPoints[0]);		
 		playersPositions.Add(Wizard, FieldPoints[4]);
 		playersPositions.Add(Knight, FieldPoints[20]);
 		playersPositions.Add(Unicorn, FieldPoints[24]);
@@ -45,6 +46,11 @@ public class GameController : MonoBehaviour
 		playersHealth.Add(Wizard, InitialHealth);
 		playersHealth.Add(Knight, InitialHealth);
 		playersHealth.Add(Unicorn, InitialHealth);
+		
+		alivePlayers.Add(Lizard);
+		alivePlayers.Add(Wizard);
+		alivePlayers.Add(Knight);
+		alivePlayers.Add(Unicorn);
 		
 		// Start game
 		currentPlayer.SetActive();
@@ -61,17 +67,16 @@ public class GameController : MonoBehaviour
 
 	private void GiveUpTurn()
 	{
-		// TODO: check if players are killed; win condition as well
+		// Some player has won
+		if (alivePlayers.Count == 1) Application.Quit();
 		
-		if (ReferenceEquals(currentPlayer, Lizard))
-			currentPlayer = Wizard;
-		else if (ReferenceEquals(currentPlayer, Wizard))
-			currentPlayer = Knight;
-		else if (ReferenceEquals(currentPlayer, Knight))
-			currentPlayer = Unicorn;
-		else
-			currentPlayer = Lizard;
-			
+		// Choose next player
+		var currentPlayerIndex = alivePlayers.IndexOf(currentPlayer);
+		currentPlayer = 
+			currentPlayerIndex == alivePlayers.Count - 1 
+				? alivePlayers[0] 
+				: alivePlayers[currentPlayerIndex + 1];
+	
 		currentPlayerMoved = false;
 		currentPlayer.SetActive();
 	}
@@ -80,6 +85,7 @@ public class GameController : MonoBehaviour
 	{
 		target.Hit();
 		Destroy(target.GetGameObject());
+		alivePlayers.Remove(target);
 	}
 	
 	public void MovePlayer(PointController newPos)
