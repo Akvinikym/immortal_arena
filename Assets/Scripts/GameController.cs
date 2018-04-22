@@ -2,8 +2,10 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
+using UnityEngine.Networking;
 
-public class GameController : MonoBehaviour
+public class GameController : NetworkBehaviour
 {
 	public List<PointController> FieldPoints;
 	
@@ -23,9 +25,22 @@ public class GameController : MonoBehaviour
 	private IPlayer currentPlayer;
 	private bool currentPlayerMoved;
 
+	// UI
+	public Text Message;
+	NetworkView networkView;
+	NetworkClient client;
+
 
 	private void Start ()
 	{
+//		Network.InitializeServer(10, 5000);
+//		networkView = new NetworkView ();
+		NetworkServer.Listen(4444);
+		client = new NetworkClient();
+		client.RegisterHandler(MsgType.Connect, OnConnected);
+		client.RegisterHandler(MyMessageTypes.MSG_TEXT, OnUpdateText);
+		client.Connect ("127.0.0.1", 4444);
+
 		// Choose, who will be the first
 		var rand = new System.Random();
 		switch (rand.Next(0, 3))
@@ -54,6 +69,11 @@ public class GameController : MonoBehaviour
 		
 		// Start game
 		currentPlayer.SetActive();
+//		if (!isServer) {
+//			Debug.Log ("not a server");
+//			return;
+//		}
+//		Network.Connect("127.0.0.1", 5000);
 	}
 	
 	private void Update () 
@@ -62,6 +82,7 @@ public class GameController : MonoBehaviour
 		{
 			// Player gives up the turn
 			GiveUpTurn();
+			UpdateTextServer ();
 		}
 	}
 
@@ -122,4 +143,33 @@ public class GameController : MonoBehaviour
 		
 		GiveUpTurn();
 	}
+
+	public class MyMessageTypes
+	{
+		public static short MSG_TEXT = 1000;
+		public static short MSG_SCORE = 1005;
+	};
+		
+	public class TextMessage : MessageBase {
+		public string text;
+
+		public TextMessage(string text) {
+			this.text = text;
+		}
+	}
+	// RPC
+//	[Command]
+	private void UpdateTextServer() 
+	{
+		NetworkServer.SendToAll(MyMessageTypes.MSG_TEXT, new TextMessage("hello there!"));
+	}
+
+	private void OnUpdateText(NetworkMessage netMsg) {
+		Message.text = netMsg.reader.ReadString();
+	}
+
+	public void OnConnected(NetworkMessage netMsg) {
+		Debug.Log ("connected to server");
+	}
+		
 }
