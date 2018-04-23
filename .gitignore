@@ -1,3 +1,8 @@
 .idea
 obj
 Assets/Plugins/Editor
+Library/
+Temp/
+Assets/
+Assembly-CSharp.csproj
+UnityPackageManager
