@@ -30,16 +30,22 @@ public class GameController : NetworkBehaviour
 	public InputField Ip;
 	NetworkView networkView;
 	NetworkClient client;
+	ConnectionConfig cc;
 
 
 	private void Start ()
 	{
-//		Network.InitializeServer(10, 5000);
-//		networkView = new NetworkView ();
+		cc = new ConnectionConfig ();
+		cc.AddChannel(QosType.Reliable);
+
+		NetworkServer.Configure (cc, 10);
 		NetworkServer.Listen(4444);
+	
 		client = new NetworkClient();
 		client.RegisterHandler(MsgType.Connect, OnConnected);
 		client.RegisterHandler(MyMessageTypes.MSG_TEXT, OnUpdateText);
+		client.Configure(cc, 10);
+
 
 		// Choose, who will be the first
 		var rand = new System.Random();
