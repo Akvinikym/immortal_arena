@@ -27,6 +27,7 @@ public class GameController : NetworkBehaviour
 
 	// UI
 	public Text Message;
+	public InputField Ip;
 	NetworkView networkView;
 	NetworkClient client;
 
@@ -39,7 +40,6 @@ public class GameController : NetworkBehaviour
 		client = new NetworkClient();
 		client.RegisterHandler(MsgType.Connect, OnConnected);
 		client.RegisterHandler(MyMessageTypes.MSG_TEXT, OnUpdateText);
-		client.Connect ("127.0.0.1", 4444);
 
 		// Choose, who will be the first
 		var rand = new System.Random();
@@ -84,6 +84,17 @@ public class GameController : NetworkBehaviour
 			GiveUpTurn();
 			UpdateTextServer ();
 		}
+		if (Input.GetKeyDown("return"))
+		{
+			// Player gives up the turn
+			ConnectToServer ();
+		}
+	}
+
+	private void ConnectToServer()
+	{
+		Debug.Log (Ip.text);
+		client.Connect(Ip.text, 4444);
 	}
 
 	private void GiveUpTurn()
