@@ -15,6 +15,7 @@ public class GameController : NetworkBehaviour
 	public UnicornController Unicorn;
 
 	private readonly List<IPlayer> alivePlayers = new List<IPlayer>();
+	private readonly List<IPlayer> allPlayers = new List<IPlayer>();
 	private readonly Dictionary<IPlayer, PointController> playersPositions = 
 		new Dictionary<IPlayer, PointController>();
 	
@@ -28,7 +29,6 @@ public class GameController : NetworkBehaviour
 	// UI
 	public Text Message;
 	public InputField Ip;
-	NetworkView networkView;
 	NetworkClient client;
 	ConnectionConfig cc;
 
@@ -43,7 +43,7 @@ public class GameController : NetworkBehaviour
 	
 		client = new NetworkClient();
 		client.RegisterHandler(MsgType.Connect, OnConnected);
-		client.RegisterHandler(MyMessageTypes.MSG_TEXT, OnUpdateText);
+		client.RegisterHandler(MyMessageTypes.MSG_MOVE, OnMove);
 		client.Configure(cc, 10);
 
 
@@ -62,6 +62,7 @@ public class GameController : NetworkBehaviour
 		playersPositions.Add(Wizard, FieldPoints[4]);
 		playersPositions.Add(Knight, FieldPoints[20]);
 		playersPositions.Add(Unicorn, FieldPoints[24]);
+
 				
 		playersHealth.Add(Lizard, InitialHealth);
 		playersHealth.Add(Wizard, InitialHealth);
@@ -72,6 +73,11 @@ public class GameController : NetworkBehaviour
 		alivePlayers.Add(Wizard);
 		alivePlayers.Add(Knight);
 		alivePlayers.Add(Unicorn);
+
+		allPlayers.Add(Lizard);
+		allPlayers.Add(Wizard);
+		allPlayers.Add(Knight);
+		allPlayers.Add(Unicorn);
 		
 		// Start game
 		currentPlayer.SetActive();
@@ -88,7 +94,7 @@ public class GameController : NetworkBehaviour
 		{
 			// Player gives up the turn
 			GiveUpTurn();
-			UpdateTextServer ();
+//			UpdateTextServer ();
 		}
 		if (Input.GetKeyDown("return"))
 		{
@@ -125,13 +131,31 @@ public class GameController : NetworkBehaviour
 		Destroy(target.GetGameObject());
 		alivePlayers.Remove(target);
 	}
-	
+
+	public class MoveMessage : MessageBase {
+		public int player;
+		public int x;
+		public int y;
+
+		public MoveMessage(int player, int x, int y) {
+			this.player = player;
+			this.x = x;
+			this.y = y;
+		}
+
+		public MoveMessage() {
+		}
+	}
+
 	public void MovePlayer(PointController newPos)
 	{
 		if (currentPlayerMoved) return;
 		
 		playersPositions[currentPlayer] = newPos;
 		currentPlayer.GetGameObject().transform.position = newPos.gameObject.transform.position;
+
+		NetworkServer.SendToAll(MyMessageTypes.MSG_MOVE, 
+			new MoveMessage(allPlayers.IndexOf(currentPlayer), newPos.XCoordinate, newPos.YCoordinate));
 
 		currentPlayerMoved = true;
 	}
@@ -163,23 +187,16 @@ public class GameController : NetworkBehaviour
 
 	public class MyMessageTypes
 	{
-		public static short MSG_TEXT = 1000;
+		public static short MSG_MOVE = 1000;
 		public static short MSG_SCORE = 1005;
 	};
 		
-	public class TextMessage : MessageBase {
-		public string text;
-
-		public TextMessage(string text) {
-			this.text = text;
-		}
-	}
 	// RPC
 //	[Command]
-	private void UpdateTextServer() 
-	{
-		NetworkServer.SendToAll(MyMessageTypes.MSG_TEXT, new TextMessage("hello there!"));
-	}
+//	private void UpdateTextServer() 
+//	{
+//		NetworkServer.SendToAll(MyMessageTypes.MSG_TEXT, new TextMessage("hello there!"));
+//	}
 
 	private void OnUpdateText(NetworkMessage netMsg) {
 		Message.text = netMsg.reader.ReadString();
@@ -189,4 +206,14 @@ public class GameController : NetworkBehaviour
 		Debug.Log ("connected to server");
 	}
 		
+	private void OnMove(NetworkMessage netMsg) {
+		var message = netMsg.ReadMessage<MoveMessage> ();
+		var player = message.player;
+		var x = message.x;
+		var y = message.y;
+
+		var pos = FieldPoints [5 * x + y];
+		playersPositions[allPlayers[player]] = pos;
+		currentPlayer.GetGameObject().transform.position = pos.gameObject.transform.position;
+	}
 }
