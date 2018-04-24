@@ -32,6 +32,9 @@ public class GameController : NetworkBehaviour
 	private const int TimeForTurn = 30;
 	private Coroutine timerCoroutine;
 	
+	// TODO: kick player, when his skips amout is >= 2
+	private readonly Dictionary<IPlayer, int> turnSkipsInRow = new Dictionary<IPlayer, int>();
+	
 	// UI
 	public UIController UiController;
 	public Text Message;
@@ -88,6 +91,11 @@ public class GameController : NetworkBehaviour
 		allPlayers.Add(Knight);
 		allPlayers.Add(Unicorn);
 		
+		turnSkipsInRow.Add(Lizard, 0);
+		turnSkipsInRow.Add(Wizard, 0);
+		turnSkipsInRow.Add(Knight, 0);
+		turnSkipsInRow.Add(Unicorn, 0);
+
 		// Start game
 		currentPlayer.SetActive();
 		UiController.SetTurn(currentPlayer);
@@ -126,6 +134,7 @@ public class GameController : NetworkBehaviour
 			yield return new WaitForSeconds(1.0f);
 			timeLeft--;
 		}
+		turnSkipsInRow[currentPlayer]++;
 		GiveUpTurn();
 	}
 
@@ -154,6 +163,7 @@ public class GameController : NetworkBehaviour
 		// Choose next player
 		var currentPlayerIndex = alivePlayers.IndexOf(currentPlayer);
 		var nextPlayerIndex = currentPlayerIndex == alivePlayers.Count - 1 ? 0 : currentPlayerIndex + 1;
+		
 		currentPlayer = alivePlayers[nextPlayerIndex];
 	
 		currentPlayerMoved = false;
