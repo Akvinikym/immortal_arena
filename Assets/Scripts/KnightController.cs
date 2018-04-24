@@ -56,6 +56,11 @@ public class KnightController : MonoBehaviour, IPlayer {
 		yield return new WaitForSeconds(0.5f);
 		Sprite.color = Color.white;
 	}
+
+	public string GetStringName()
+	{
+		return "Knight";
+	}
 	
 	private void OnMouseDown()
 	{

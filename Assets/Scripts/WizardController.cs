@@ -57,6 +57,11 @@ public class WizardController : MonoBehaviour, IPlayer
 		yield return new WaitForSeconds(0.5f);
 		Sprite.color = Color.white;
 	}
+	
+	public string GetStringName()
+	{
+		return "Wizard";
+	}
 
 	private void OnMouseDown()
 	{

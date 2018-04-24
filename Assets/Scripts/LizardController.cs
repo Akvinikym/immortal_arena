@@ -58,6 +58,11 @@ public class LizardController : MonoBehaviour, IPlayer
 		Sprite.color = Color.white;
 	}
 	
+	public string GetStringName()
+	{
+		return "Lizard";
+	}
+	
 	private void OnMouseDown()
 	{
 		// the player was selected as target to hit

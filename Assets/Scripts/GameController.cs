@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 
@@ -26,7 +27,13 @@ public class GameController : NetworkBehaviour
 	private IPlayer currentPlayer;
 	private bool currentPlayerMoved;
 
+	// Time, which is left for current player's turn
+	private int timeLeft;
+	private const int TimeForTurn = 30;
+	private Coroutine timerCoroutine;
+	
 	// UI
+	public UIController UiController;
 	public Text Message;
 	public InputField Ip;
 	NetworkClient client;
@@ -83,6 +90,10 @@ public class GameController : NetworkBehaviour
 		
 		// Start game
 		currentPlayer.SetActive();
+		UiController.SetTurn(currentPlayer);
+		timerCoroutine = StartCoroutine(StartTimer());
+
+
 //		if (!isServer) {
 //			Debug.Log ("not a server");
 //			return;
@@ -105,6 +116,19 @@ public class GameController : NetworkBehaviour
 		}
 	}
 
+	// Timer, counting, how much left for current player's turn
+	private IEnumerator StartTimer()
+	{
+		timeLeft = TimeForTurn;
+		while (timeLeft >= 0)
+		{
+			UiController.UpdateTimer(timeLeft);
+			yield return new WaitForSeconds(1.0f);
+			timeLeft--;
+		}
+		GiveUpTurn();
+	}
+
 	private void ConnectToServer()
 	{
 		Debug.Log (Ip.text);
@@ -125,7 +149,7 @@ public class GameController : NetworkBehaviour
 	private void GiveUpTurn()
 	{
 		// Some player has won
-		if (alivePlayers.Count == 1) Application.Quit();
+		if (alivePlayers.Count == 1) UiController.FinishGame(alivePlayers.First());
 		
 		// Choose next player
 		var currentPlayerIndex = alivePlayers.IndexOf(currentPlayer);
@@ -134,6 +158,11 @@ public class GameController : NetworkBehaviour
 	
 		currentPlayerMoved = false;
 		currentPlayer.SetActive();
+		
+		UiController.SetTurn(alivePlayers[nextPlayerIndex]);
+		
+		StopCoroutine(timerCoroutine);
+		timerCoroutine = StartCoroutine(StartTimer());
 
 		NetworkServer.SendToAll(MyMessageTypes.MSG_TURN, 
 			new TurnMessage(nextPlayerIndex));
@@ -144,6 +173,7 @@ public class GameController : NetworkBehaviour
 		target.Hit();
 		Destroy(target.GetGameObject());
 		alivePlayers.Remove(target);
+		playersPositions.Remove(target);
 	}
 
 	public class MoveMessage : MessageBase {
@@ -165,8 +195,11 @@ public class GameController : NetworkBehaviour
 	{
 		if (currentPlayerMoved) return;
 		
+		if (playersPositions.ContainsValue(newPos)) return;
+		
 		playersPositions[currentPlayer] = newPos;
-		currentPlayer.GetGameObject().transform.position = newPos.gameObject.transform.position;
+		var pos = newPos.gameObject.transform.position;
+		currentPlayer.GetGameObject().transform.position = new Vector3(pos.x, pos.y, 0);
 
 		NetworkServer.SendToAll(MyMessageTypes.MSG_MOVE, 
 			new MoveMessage(allPlayers.IndexOf(currentPlayer), newPos.XCoordinate, newPos.YCoordinate));
@@ -200,11 +233,14 @@ public class GameController : NetworkBehaviour
 			// Target is still alive
 			target.Hit();
 			playersHealth[target] -= 1;
+			UiController.ReduceHealth(target);
 		}
 		else
 		{
 			// Die
 			KillPlayer(target);
+			UiController.ReduceHealth(target);
+			UiController.KillPlayer(target);
 		}
 
 		NetworkServer.SendToAll(MyMessageTypes.MSG_ATTACK, 

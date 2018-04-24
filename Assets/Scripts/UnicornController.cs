@@ -58,6 +58,11 @@ public class UnicornController : MonoBehaviour, IPlayer {
 		Sprite.color = Color.white;
 	}
 	
+	public string GetStringName()
+	{
+		return "Unicorn";
+	}
+	
 	private void OnMouseDown()
 	{
 		// the player was selected as target to hit

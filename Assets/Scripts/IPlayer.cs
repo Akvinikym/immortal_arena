@@ -10,4 +10,5 @@ public interface IPlayer
     void Hit();
     
     GameObject GetGameObject();
+    string GetStringName();
 }
