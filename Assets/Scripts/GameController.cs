@@ -44,6 +44,8 @@ public class GameController : NetworkBehaviour
 		client = new NetworkClient();
 		client.RegisterHandler(MsgType.Connect, OnConnected);
 		client.RegisterHandler(MyMessageTypes.MSG_MOVE, OnMove);
+		client.RegisterHandler(MyMessageTypes.MSG_TURN, OnTurn);
+		client.RegisterHandler(MyMessageTypes.MSG_ATTACK, OnAttack);
 		client.Configure(cc, 10);
 
 
@@ -109,6 +111,17 @@ public class GameController : NetworkBehaviour
 		client.Connect(Ip.text, 4444);
 	}
 
+	public class TurnMessage : MessageBase {
+		public int NextPlayer;
+
+		public TurnMessage(int nextPlayer) {
+			NextPlayer = nextPlayer;
+		}
+
+		public TurnMessage() {
+		}
+	}
+
 	private void GiveUpTurn()
 	{
 		// Some player has won
@@ -116,13 +129,14 @@ public class GameController : NetworkBehaviour
 		
 		// Choose next player
 		var currentPlayerIndex = alivePlayers.IndexOf(currentPlayer);
-		currentPlayer = 
-			currentPlayerIndex == alivePlayers.Count - 1 
-				? alivePlayers[0] 
-				: alivePlayers[currentPlayerIndex + 1];
+		var nextPlayerIndex = currentPlayerIndex == alivePlayers.Count - 1 ? 0 : currentPlayerIndex + 1;
+		currentPlayer = alivePlayers[nextPlayerIndex];
 	
 		currentPlayerMoved = false;
 		currentPlayer.SetActive();
+
+		NetworkServer.SendToAll(MyMessageTypes.MSG_TURN, 
+			new TurnMessage(nextPlayerIndex));
 	}
 
 	private void KillPlayer(IPlayer target)
@@ -160,6 +174,17 @@ public class GameController : NetworkBehaviour
 		currentPlayerMoved = true;
 	}
 
+	public class AttackMessage : MessageBase {
+		public int Target;
+
+		public AttackMessage(int target) {
+			Target = target;
+		}
+
+		public AttackMessage() {
+		}
+	}
+
 	public void AttackPlayer(IPlayer target)
 	{
 		if (ReferenceEquals(currentPlayer, target)) return;
@@ -181,6 +206,9 @@ public class GameController : NetworkBehaviour
 			// Die
 			KillPlayer(target);
 		}
+
+		NetworkServer.SendToAll(MyMessageTypes.MSG_ATTACK, 
+			new AttackMessage(allPlayers.IndexOf(target)));
 		
 		GiveUpTurn();
 	}
@@ -188,7 +216,9 @@ public class GameController : NetworkBehaviour
 	public class MyMessageTypes
 	{
 		public static short MSG_MOVE = 1000;
-		public static short MSG_SCORE = 1005;
+		public static short MSG_TURN = 1001;
+		public static short MSG_ATTACK = 1002;
+
 	};
 		
 	// RPC
@@ -214,6 +244,36 @@ public class GameController : NetworkBehaviour
 
 		var pos = FieldPoints [5 * x + y];
 		playersPositions[allPlayers[player]] = pos;
-		currentPlayer.GetGameObject().transform.position = pos.gameObject.transform.position;
+		allPlayers[player].GetGameObject().transform.position = pos.gameObject.transform.position;
+	}
+
+	private void OnTurn(NetworkMessage netMsg) {
+		var message = netMsg.ReadMessage<TurnMessage> ();
+		var player = message.NextPlayer;
+
+		if (alivePlayers.Count == 1) Application.Quit();
+
+		currentPlayer = alivePlayers[player];
+
+		currentPlayerMoved = false;
+		currentPlayer.SetActive();
+
+	}
+
+	private void OnAttack(NetworkMessage netMsg) {
+		var message = netMsg.ReadMessage<AttackMessage> ();
+		var target = allPlayers[message.Target];
+
+		if (playersHealth[target] != 1)
+		{
+			// Target is still alive
+			target.Hit();
+			playersHealth[target] -= 1;
+		}
+		else
+		{
+			// Die
+			KillPlayer(target);
+		}
 	}
 }
