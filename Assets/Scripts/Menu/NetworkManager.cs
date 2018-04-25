@@ -17,7 +17,14 @@ namespace Menu
             [JsonProperty("players_count")]
             public int PlayersCount;
             [JsonProperty("players")]
-            public string[] Players;
+            public Player[] Players;
+        }
+        public class Player
+        {
+            [JsonProperty("address")] 
+            public string Address;
+            [JsonProperty("ready")]
+            public bool IsReady;
         }
         
         private const string serverAddress = "http://127.0.0.1:8080";
@@ -26,6 +33,7 @@ namespace Menu
         private const string getLobby = "/lobby?lobby_id=";
         private const string getLobbies = "/lobbies";
         private const string deleteLobby = "/delete?lobby_id=";
+        private const string ready = "/ready";
 
         private static string GetLocalIP()
         {
@@ -106,6 +114,24 @@ namespace Menu
                 serverAddress + deleteLobby + id);
             var response = (HttpWebResponse) request.GetResponse();
             
+            return response.StatusCode == HttpStatusCode.OK;
+        }
+
+        public bool SetReady(int id)
+        {
+            var request = (HttpWebRequest) WebRequest.Create(
+                serverAddress + string.Format("/ready?lobby_id={0}&address={1}", id, GetLocalIP()));
+            var response = (HttpWebResponse) request.GetResponse();
+
+            return response.StatusCode == HttpStatusCode.OK;
+        }
+        
+        public bool SetNotReady(int id)
+        {
+            var request = (HttpWebRequest) WebRequest.Create(
+                serverAddress + string.Format("/notready?lobby_id={0}&address={1}", id, GetLocalIP()));
+            var response = (HttpWebResponse) request.GetResponse();
+
             return response.StatusCode == HttpStatusCode.OK;
         }
     }
