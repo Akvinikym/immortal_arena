@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace Menu
 {   
-    public class NetworkManager
+    public class NetworkManager : MonoBehaviour
     {
         public class Lobby
         {
@@ -17,13 +19,8 @@ namespace Menu
             [JsonProperty("players")]
             public string[] Players;
         }
-
-        public class LobbiesMap
-        {
-            public Dictionary<string, Lobby> Lobbies;
-        }
         
-        private const string serverAddress = "http://127.0.0.1";
+        private const string serverAddress = "http://127.0.0.1:8080";
         
         private const string createLobby = "/create";
         private const string getLobby = "/lobby?lobby_id=";
@@ -50,7 +47,8 @@ namespace Menu
             var createResponse = (HttpWebResponse) createRequest.GetResponse();
             if (createResponse.StatusCode != HttpStatusCode.OK) return -1;
 
-            return JsonConvert.DeserializeObject<Lobby>(createResponse.GetResponseStream().ToString()).Id;
+            return JsonConvert.DeserializeObject<Lobby>(
+                new StreamReader(createResponse.GetResponseStream()).ReadToEnd()).Id;
         }
 
         /// <summary>
@@ -63,7 +61,7 @@ namespace Menu
             var response = (HttpWebResponse) request.GetResponse();
             
             return response.StatusCode == HttpStatusCode.OK && 
-                   response.GetResponseStream().ToString() == "Added to Lobby";
+                   new StreamReader(response.GetResponseStream()).ReadToEnd() == "Added to lobby";
         }
 
         /// <summary>
@@ -74,7 +72,7 @@ namespace Menu
             var request = (HttpWebRequest) WebRequest.Create(serverAddress + getLobby + lobbyId);
             var response = (HttpWebResponse) request.GetResponse();
             return response.StatusCode == HttpStatusCode.OK 
-                ? JsonConvert.DeserializeObject<Lobby>(response.GetResponseStream().ToString())
+                ? JsonConvert.DeserializeObject<Lobby>(new StreamReader(response.GetResponseStream()).ReadToEnd())
                 : null;
         }
 
@@ -87,8 +85,8 @@ namespace Menu
             var response = (HttpWebResponse) request.GetResponse();
             if (response.StatusCode != HttpStatusCode.OK) return new List<Lobby>();
 
-            return JsonConvert.DeserializeObject<LobbiesMap>(
-                response.GetResponseStream().ToString()).Lobbies.Values.ToList();
+            return JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(
+                new StreamReader(response.GetResponseStream()).ReadToEnd()).Values.ToList();
         }
 
         public bool LeaveLobby(int id)
@@ -99,7 +97,7 @@ namespace Menu
             if (response.StatusCode != HttpStatusCode.OK) return false;
             
             return response.StatusCode == HttpStatusCode.OK &&
-                   response.GetResponseStream().ToString() == "Removed from lobby";
+                   new StreamReader(response.GetResponseStream()).ReadToEnd() == "Removed from lobby";
         }
 
         public bool DeleteLobby(int id)

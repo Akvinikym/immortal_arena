@@ -7,7 +7,7 @@ using Button = UnityEngine.UI.Button;
 
 namespace Menu
 {
-	public class JoinBattleController : MonoBehaviour
+	public class BattleController : MonoBehaviour
 	{
 		public NetworkManager Network;
 		public GameObject BattleView;
@@ -33,8 +33,10 @@ namespace Menu
 		// Use this for initialization
 		private void Start()
 		{
+			Debug.Log("Hi");
 			CloseBtn.onClick.AddListener(HideJoinBattleMenu);
 			battlePoller = StartCoroutine(StartPollingBattles());
+			UpdatePlayersAddresses(new List<string>());
 		}
 
 		private void PollBattles()
@@ -42,7 +44,7 @@ namespace Menu
 			var lobbies = Network.GetLobbies();
 			foreach (var button in availableBattlesButtons)
 			{
-				Destroy(button);
+				Destroy(button.gameObject);
 			}
 			availableBattlesButtons.Clear();
 			
@@ -106,7 +108,7 @@ namespace Menu
 			return true;
 		}
 
-		private void UpdatePlayersAddresses(IReadOnlyList<string> addresses)
+		private void UpdatePlayersAddresses(List<string> addresses)
 		{
 			Player1.text = "";
 			Player2.text = "";
@@ -116,33 +118,48 @@ namespace Menu
 			switch (addresses.Count)
 			{
 				case 1:
-					Player1.text = addresses[0];
+					Player1.text = "Player 1: " + addresses[0];
 					break;
 				case 2:
-					Player1.text = addresses[0];
-					Player2.text = addresses[1];
+					Player1.text = "Player 1: " + addresses[0];
+					Player2.text = "Player 2: " + addresses[1];
 					break;
 				case 3:
-					Player1.text = addresses[0];
-					Player2.text = addresses[1];
-					Player3.text = addresses[2];
+					Player1.text = "Player 1: " + addresses[0];
+					Player2.text = "Player 2: " + addresses[1];
+					Player3.text = "Player 3: " + addresses[2];
 					break;
 				case 4:
-					Player1.text = addresses[0];
-					Player2.text = addresses[1];
-					Player3.text = addresses[2];
-					Player4.text = addresses[3];
+					Player1.text = "Player 1: " + addresses[0];
+					Player2.text = "Player 2: " + addresses[1];
+					Player3.text = "Player 3: " + addresses[2];
+					Player4.text = "Player 4: " + addresses[3];
 					break;
 			}
 		}
+
+		public bool CreateBattle()
+		{
+			var lobbyId = Network.CreateLobby();
+			if (lobbyId == -1) return false;
+
+			JoinBattle(lobbyId);
+			return true;
+		}
 		
-		public void ShowJoinBattleMenu()
+		public void ShowBattleMenu()
 		{
 			this.gameObject.SetActive(true);
 		}
 
-		public void HideJoinBattleMenu()
+		private void HideJoinBattleMenu()
 		{
+			if (currentLobby != null)
+			{
+				LeaveLobby(currentLobby.Id);
+				currentLobby = null;
+			}
+			// TODO: bug is somewhere here
 			this.gameObject.SetActive(false);
 		}
 	}

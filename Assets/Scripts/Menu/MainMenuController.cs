@@ -7,8 +7,7 @@ namespace Menu
 {
 	public class MainMenuController : MonoBehaviour
 	{
-		public CreateBattleController CreateBattle;
-		public JoinBattleController JoinBattle;
+		public BattleController Battle;
 		
 		public Button CreateBtn;
 		public Button JoinBtn;
@@ -24,12 +23,13 @@ namespace Menu
 
 		private void OnCreateBtn()
 		{
-			CreateBattle.ShowCreateBattleMenu();
+			Battle.ShowBattleMenu();
+			Battle.CreateBattle();
 		}
 
 		private void OnJoinBtn()
 		{
-			JoinBattle.ShowJoinBattleMenu();
+			Battle.ShowBattleMenu();
 		}
 
 		private void OnLeaveBtn()
