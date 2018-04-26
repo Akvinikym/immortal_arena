@@ -5,10 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using Network;
 
 namespace Arena
 {
-    public class GameController : NetworkBehaviour
+    public class GameController : MonoBehaviour
     {
         public List<PointController> FieldPoints;
 
@@ -17,6 +18,9 @@ namespace Arena
         public KnightController Knight;
         public UnicornController Unicorn;
 
+		public Network.NetworkManager NetManager;
+
+		private int playerNumber;
         private readonly List<IPlayer> alivePlayers = new List<IPlayer>();
         private readonly List<IPlayer> allPlayers = new List<IPlayer>();
 
@@ -43,28 +47,8 @@ namespace Arena
         // UI
         public UIController UiController;
 
-        public Text Message;
-        public InputField Ip;
-        NetworkClient client;
-        ConnectionConfig cc;
-
-
         private void Start()
         {
-            cc = new ConnectionConfig();
-            cc.AddChannel(QosType.Reliable);
-
-            NetworkServer.Configure(cc, 10);
-            NetworkServer.Listen(4444);
-
-            client = new NetworkClient();
-            client.RegisterHandler(MsgType.Connect, OnConnected);
-            client.RegisterHandler(MyMessageTypes.MSG_MOVE, OnMove);
-            client.RegisterHandler(MyMessageTypes.MSG_TURN, OnTurn);
-            client.RegisterHandler(MyMessageTypes.MSG_ATTACK, OnAttack);
-            client.Configure(cc, 10);
-
-
             // Choose, who will be the first
             var rand = new System.Random();
             switch (rand.Next(0, 3))
@@ -115,12 +99,33 @@ namespace Arena
             UiController.SetTurn(currentPlayer);
             timerCoroutine = StartCoroutine(StartTimer());
 
+			NetManager.OnMoveHandler = (player, x, y) => {
+				var pos = FieldPoints [5 * x + y];
+				playersPositions [allPlayers [player]] = pos;
+				allPlayers [player].GetGameObject ().transform.position = pos.gameObject.transform.position;
+			};
+			NetManager.OnTurnHandler = () => {
+				if (alivePlayers.Count == 1)
+					Application.Quit ();
+				
+				currentPlayer = alivePlayers[(alivePlayers.IndexOf(currentPlayer) + 1) % alivePlayers.Count];
+				
+				currentPlayerMoved = false;
+				currentPlayer.SetActive ();
+			};
 
-//		if (!isServer) {
-//			Debug.Log ("not a server");
-//			return;
-//		}
-//		Network.Connect("127.0.0.1", 5000);
+			NetManager.OnAttackHandler = (target) => {
+				if (playersHealth [alivePlayers[target]] != 1) {
+					// Target is still alive
+					alivePlayers[target].Hit ();
+					playersHealth[alivePlayers[target]] -= 1;
+				} else {
+					// Die
+					KillPlayer (alivePlayers[target]);
+				}
+			};
+
+			playerNumber = NetManager.GetPlayerNumber();
         }
 
         private void Update()
@@ -129,12 +134,6 @@ namespace Arena
             {
                 // Player gives up the turn
                 GiveUpTurn();
-//			UpdateTextServer ();
-            }
-            if (Input.GetKeyDown("return"))
-            {
-                // Player gives up the turn
-                ConnectToServer();
             }
         }
 
@@ -151,29 +150,13 @@ namespace Arena
             turnSkipsInRow[currentPlayer]++;
             GiveUpTurn();
         }
-
-        private void ConnectToServer()
-        {
-            Debug.Log(Ip.text);
-            client.Connect(Ip.text, 4444);
-        }
-
-        public class TurnMessage : MessageBase
-        {
-            public int NextPlayer;
-
-            public TurnMessage(int nextPlayer)
-            {
-                NextPlayer = nextPlayer;
-            }
-
-            public TurnMessage()
-            {
-            }
-        }
-
+       
         private void GiveUpTurn()
         {
+			if (playerNumber != allPlayers.IndexOf (currentPlayer)) {
+				Debug.Log("not your turn");
+				return;
+			}
             // Some player has won
             if (alivePlayers.Count == 1) UiController.FinishGame(alivePlayers.First());
 
@@ -191,8 +174,7 @@ namespace Arena
             StopCoroutine(timerCoroutine);
             timerCoroutine = StartCoroutine(StartTimer());
 
-            NetworkServer.SendToAll(MyMessageTypes.MSG_TURN,
-                new TurnMessage(nextPlayerIndex));
+			NetManager.NextTurn ();
         }
 
         private void KillPlayer(IPlayer target)
@@ -203,26 +185,14 @@ namespace Arena
             playersPositions.Remove(target);
         }
 
-        public class MoveMessage : MessageBase
-        {
-            public int player;
-            public int x;
-            public int y;
-
-            public MoveMessage(int player, int x, int y)
-            {
-                this.player = player;
-                this.x = x;
-                this.y = y;
-            }
-
-            public MoveMessage()
-            {
-            }
-        }
+        
 
         public void MovePlayer(PointController newPos)
         {
+			if (playerNumber != allPlayers.IndexOf (currentPlayer)) {
+				Debug.Log("not your turn");
+				return;
+			}
             if (currentPlayerMoved) return;
 
             if (playersPositions.ContainsValue(newPos)) return;
@@ -231,28 +201,19 @@ namespace Arena
             var pos = newPos.gameObject.transform.position;
             currentPlayer.GetGameObject().transform.position = new Vector3(pos.x, pos.y, 0);
 
-            NetworkServer.SendToAll(MyMessageTypes.MSG_MOVE,
-                new MoveMessage(allPlayers.IndexOf(currentPlayer), newPos.XCoordinate, newPos.YCoordinate));
+			NetManager.Move(allPlayers.IndexOf (currentPlayer), newPos.XCoordinate, newPos.YCoordinate);
 
             currentPlayerMoved = true;
         }
 
-        public class AttackMessage : MessageBase
-        {
-            public int Target;
-
-            public AttackMessage(int target)
-            {
-                Target = target;
-            }
-
-            public AttackMessage()
-            {
-            }
-        }
 
         public void AttackPlayer(IPlayer target)
         {
+			if (playerNumber != allPlayers.IndexOf (currentPlayer)) {
+				Debug.Log("not your turn");
+				return;
+			}
+
             if (ReferenceEquals(currentPlayer, target)) return;
 
             var attackerPos = playersPositions[currentPlayer];
@@ -276,77 +237,10 @@ namespace Arena
                 UiController.KillPlayer(target);
             }
 
-            NetworkServer.SendToAll(MyMessageTypes.MSG_ATTACK,
-                new AttackMessage(allPlayers.IndexOf(target)));
+			NetManager.Attack (allPlayers.IndexOf (target));
 
             GiveUpTurn();
         }
-
-        public class MyMessageTypes
-        {
-            public static short MSG_MOVE = 1000;
-            public static short MSG_TURN = 1001;
-            public static short MSG_ATTACK = 1002;
-        };
-
-        // RPC
-//	[Command]
-//	private void UpdateTextServer() 
-//	{
-//		NetworkServer.SendToAll(MyMessageTypes.MSG_TEXT, new TextMessage("hello there!"));
-//	}
-
-        private void OnUpdateText(NetworkMessage netMsg)
-        {
-            Message.text = netMsg.reader.ReadString();
-        }
-
-        public void OnConnected(NetworkMessage netMsg)
-        {
-            Debug.Log("connected to server");
-        }
-
-        private void OnMove(NetworkMessage netMsg)
-        {
-            var message = netMsg.ReadMessage<MoveMessage>();
-            var player = message.player;
-            var x = message.x;
-            var y = message.y;
-
-            var pos = FieldPoints[5 * x + y];
-            playersPositions[allPlayers[player]] = pos;
-            allPlayers[player].GetGameObject().transform.position = pos.gameObject.transform.position;
-        }
-
-        private void OnTurn(NetworkMessage netMsg)
-        {
-            var message = netMsg.ReadMessage<TurnMessage>();
-            var player = message.NextPlayer;
-
-            if (alivePlayers.Count == 1) Application.Quit();
-
-            currentPlayer = alivePlayers[player];
-
-            currentPlayerMoved = false;
-            currentPlayer.SetActive();
-        }
-
-        private void OnAttack(NetworkMessage netMsg)
-        {
-            var message = netMsg.ReadMessage<AttackMessage>();
-            var target = allPlayers[message.Target];
-
-            if (playersHealth[target] != 1)
-            {
-                // Target is still alive
-                target.Hit();
-                playersHealth[target] -= 1;
-            }
-            else
-            {
-                // Die
-                KillPlayer(target);
-            }
-        }
+	
     }
 }
