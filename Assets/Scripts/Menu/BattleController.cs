@@ -13,7 +13,7 @@ namespace Menu
 		/// <summary>
 		/// To be read from the second, arena scene
 		/// </summary>
-		public static Dictionary<int, string> FinalPlayerToIP;
+		public static List<string> FinalPlayerToIP;
 		
 		public NetworkManager Network;
 		public GameObject BattleView;
@@ -239,7 +239,7 @@ namespace Menu
 		/// </summary>
 		private void FinishMatchmaking()
 		{
-			FinalPlayerToIP = playerToIP;
+			FinalPlayerToIP = playerToIP.Values.ToList();
 			Network.DeleteLobby(currentLobby.Id);
 			SceneManager.LoadScene("GameScene");
 		}

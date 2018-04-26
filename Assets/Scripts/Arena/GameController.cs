@@ -50,23 +50,7 @@ namespace Arena
         private void Start()
         {
             // Choose, who will be the first
-            var rand = new System.Random();
 			currentPlayer = Lizard;
-//            switch (rand.Next(0, 3))
-//            {
-//                case 0:
-//                    
-//                    break;
-//                case 1:
-//                    currentPlayer = Wizard;
-//                    break;
-//                case 2:
-//                    currentPlayer = Knight;
-//                    break;
-//                case 3:
-//                    currentPlayer = Unicorn;
-//                    break;
-//            }
 
             // Set all initial positions of all players
             playersPositions.Add(Lizard, FieldPoints[0]);
@@ -106,13 +90,15 @@ namespace Arena
 				allPlayers [player].GetGameObject ().transform.position = pos.gameObject.transform.position;
 			};
 			NetManager.OnTurnHandler = () => {
-				if (alivePlayers.Count == 1)
-					Application.Quit ();
+				if (alivePlayers.Count == 1) UiController.FinishGame(alivePlayers.First());
 				
 				currentPlayer = alivePlayers[(alivePlayers.IndexOf(currentPlayer) + 1) % alivePlayers.Count];
-				
+				UiController.SetTurn(currentPlayer);
 				currentPlayerMoved = false;
 				currentPlayer.SetActive ();
+
+				StopCoroutine(timerCoroutine);
+				timerCoroutine = StartCoroutine(StartTimer());
 			};
 
 			NetManager.OnAttackHandler = (target) => {
@@ -120,8 +106,11 @@ namespace Arena
 					// Target is still alive
 					alivePlayers[target].Hit ();
 					playersHealth[alivePlayers[target]] -= 1;
+					UiController.ReduceHealth(alivePlayers[target]);
 				} else {
 					// Die
+					UiController.ReduceHealth(alivePlayers[target]);
+					UiController.KillPlayer(alivePlayers[target]);
 					KillPlayer (alivePlayers[target]);
 				}
 			};
@@ -136,6 +125,13 @@ namespace Arena
                 // Player gives up the turn
                 GiveUpTurn();
             }
+			if (Input.GetKeyDown("return"))
+			{
+				Debug.Log ("pressing enter");
+				// Player gives up the turn
+				NetManager.Connect();
+			}
+
         }
 
         // Timer, counting, how much left for current player's turn
@@ -149,12 +145,12 @@ namespace Arena
                 timeLeft--;
             }
             turnSkipsInRow[currentPlayer]++;
-            GiveUpTurn();
+            GiveUpTurn(false);
         }
        
-        private void GiveUpTurn()
+		private void GiveUpTurn(bool respectOrder=true)
         {
-			if (playerNumber != allPlayers.IndexOf (currentPlayer)) {
+			if (playerNumber != allPlayers.IndexOf (currentPlayer) && respectOrder) {
 				Debug.Log("not your turn");
 				return;
 			}
@@ -170,12 +166,15 @@ namespace Arena
             currentPlayerMoved = false;
             currentPlayer.SetActive();
 
-            UiController.SetTurn(alivePlayers[nextPlayerIndex]);
+            UiController.SetTurn(currentPlayer);
 
             StopCoroutine(timerCoroutine);
             timerCoroutine = StartCoroutine(StartTimer());
 
-			NetManager.NextTurn ();
+//			if (respectOrder) {
+				NetManager.NextTurn ();
+//			}
+			
         }
 
         private void KillPlayer(IPlayer target)
