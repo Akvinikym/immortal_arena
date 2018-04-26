@@ -51,21 +51,22 @@ namespace Arena
         {
             // Choose, who will be the first
             var rand = new System.Random();
-            switch (rand.Next(0, 3))
-            {
-                case 0:
-                    currentPlayer = Lizard;
-                    break;
-                case 1:
-                    currentPlayer = Wizard;
-                    break;
-                case 2:
-                    currentPlayer = Knight;
-                    break;
-                case 3:
-                    currentPlayer = Unicorn;
-                    break;
-            }
+			currentPlayer = Lizard;
+//            switch (rand.Next(0, 3))
+//            {
+//                case 0:
+//                    
+//                    break;
+//                case 1:
+//                    currentPlayer = Wizard;
+//                    break;
+//                case 2:
+//                    currentPlayer = Knight;
+//                    break;
+//                case 3:
+//                    currentPlayer = Unicorn;
+//                    break;
+//            }
 
             // Set all initial positions of all players
             playersPositions.Add(Lizard, FieldPoints[0]);

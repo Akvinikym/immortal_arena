@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using System;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Network {
 
@@ -57,7 +59,7 @@ namespace Network {
 
 		private List<string> playerAddresses;
 		private ConnectionConfig cc;
-		private NetworkClient client;
+		private List<NetworkClient> clients;
 
 		public Action<int, int, int> OnMoveHandler;
 		public Action<int> OnAttackHandler;
@@ -65,7 +67,7 @@ namespace Network {
 
 		private void Awake() {
 			Debug.Log ("starting network manager");
-			playerAddresses = new List<string>{"127.0.0.1"};
+			playerAddresses = new List<string>{"10.91.51.186", "127.0.0.1"};
 
 			cc = new ConnectionConfig();
 			cc.AddChannel(QosType.Reliable);
@@ -73,14 +75,18 @@ namespace Network {
 			NetworkServer.Configure(cc, 10);
 			NetworkServer.Listen(4444);
 
-			client = new NetworkClient();
-			client.RegisterHandler(MsgType.Connect, OnConnected);
-			client.RegisterHandler(MessageTypes.MSG_MOVE, OnMove);
-			client.RegisterHandler(MessageTypes.MSG_TURN, OnTurn);
-			client.RegisterHandler(MessageTypes.MSG_ATTACK, OnAttack);
-			client.Configure(cc, 10);
+			clients = new List<NetworkClient> ();
 
-			client.Connect (playerAddresses[0], 4444);
+			foreach (var address in playerAddresses) {
+				var client = new NetworkClient ();
+				client.RegisterHandler(MsgType.Connect, OnConnected);
+				client.RegisterHandler(MessageTypes.MSG_MOVE, OnMove);
+				client.RegisterHandler(MessageTypes.MSG_TURN, OnTurn);
+				client.RegisterHandler(MessageTypes.MSG_ATTACK, OnAttack);
+				client.Configure(cc, 10);
+				client.Connect (address, 4444);
+				clients.Add(client);
+			}
 		}
 
 		public void OnConnected(NetworkMessage netMsg)
@@ -129,7 +135,18 @@ namespace Network {
 		}
 
 		public int GetPlayerNumber() {
-			return 0;
+			return playerAddresses.IndexOf(GetLocalIP());
+		}
+
+		private static string GetLocalIP()
+		{
+			var host = Dns.GetHostEntry(Dns.GetHostName());
+			foreach (var ip in host.AddressList)
+			{
+				if (ip.AddressFamily == AddressFamily.InterNetwork)
+					return ip.ToString();
+			}
+			return "";
 		}
 	}
 }
