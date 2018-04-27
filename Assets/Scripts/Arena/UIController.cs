@@ -21,6 +21,9 @@ namespace Arena
 		public Text WizardText;
 		public Text KnightText;
 		public Text UnicornText;
+		
+		public Text SuccessAttack;
+		public Text FailureAttack;
 
 		public Text CurrentTurn;
 		public Text Timeout;
@@ -108,6 +111,28 @@ namespace Arena
 		{
 			WinMessage.text = string.Format("{0}\nhas won the battle!", winner.GetStringName());
 			WinScript.SetActive(true);
+		}
+
+		public void SuccessfulAttack()
+		{
+			StartCoroutine(SuccessCoroutine());
+		}
+		private IEnumerator SuccessCoroutine()
+		{
+			SuccessAttack.gameObject.SetActive(true);
+			yield return new WaitForSeconds(1f);
+			SuccessAttack.gameObject.SetActive(false);
+		}
+
+		public void FailedAttack()
+		{
+			StartCoroutine(FailCoroutine());
+		}
+		private IEnumerator FailCoroutine()
+		{
+			FailureAttack.gameObject.SetActive(true);
+			yield return new WaitForSeconds(1f);
+			FailureAttack.gameObject.SetActive(false);
 		}
 
 		private void OnLeaveGameBtnBlick()

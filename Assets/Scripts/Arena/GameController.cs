@@ -3,9 +3,6 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UI;
-using UnityEngine.Networking;
-using Network;
 
 namespace Arena
 {
@@ -41,7 +38,7 @@ namespace Arena
         // Time, which is left for current player's turn
         private int timeLeft;
 
-        private const int TimeForTurn = 5;
+        private const int TimeForTurn = 10;
         private Coroutine timerCoroutine;
         private Coroutine pollExamCoroutine;
 
@@ -111,27 +108,61 @@ namespace Arena
             };
 
             NetManager.OnAttackHandler = (target) =>
-            {
-                // TODO: fix to support ranges and attack animation
-                if (playersHealth[alivePlayers[target]] != 1)
+            {                
+                currentPlayer.StartAttack();
+                var attackerIsRange = 
+                    ReferenceEquals(currentPlayer, Lizard) || ReferenceEquals(currentPlayer, Wizard);
+                var targetVar = alivePlayers[target];
+
+                if (attackerIsRange)
                 {
-                    // Target is still alive
-                    alivePlayers[target].Hit();
-                    playersHealth[alivePlayers[target]] -= 1;
-                    UiController.ReduceHealth(alivePlayers[target]);
+                    if (playersHealth[targetVar] != 1)
+                    {
+
+                        // Target is still alive
+                        targetVar.Hit();
+                        playersHealth[targetVar] -= 1;
+                        UiController.ReduceHealth(targetVar);
+                    }
+                    else
+                    {
+                        // Die
+                        KillPlayer(targetVar);
+                        UiController.ReduceHealth(targetVar);
+                        UiController.KillPlayer(targetVar);
+                    }
                 }
                 else
                 {
-                    // Die
-                    UiController.ReduceHealth(alivePlayers[target]);
-                    UiController.KillPlayer(alivePlayers[target]);
-                    KillPlayer(alivePlayers[target]);
+                    switch (playersHealth[targetVar])
+                    {
+                        case 1:
+                            // Die
+                            KillPlayer(targetVar);
+                            playersHealth[targetVar] -= 1;
+                            UiController.ReduceHealth(targetVar);
+                            UiController.KillPlayer(targetVar);
+                            break;
+                        case 2:
+                            // Die
+                            KillPlayer(targetVar);
+                            playersHealth[targetVar] -= 2;
+                            UiController.ReduceHealth(targetVar);
+                            UiController.ReduceHealth(targetVar);
+                            UiController.KillPlayer(targetVar);
+                            break;
+                        default:
+                            // Live
+                            targetVar.Hit();
+                            playersHealth[targetVar] -= 2;
+                            UiController.ReduceHealth(targetVar);
+                            UiController.ReduceHealth(targetVar);
+                            break;
+                    }
                 }
             };
             
-            // TODO: uncomment
-//            playerNumber = NetManager.GetPlayerNumber();
-            playerNumber = 0;
+            playerNumber = NetManager.GetPlayerNumber();
         }
 
         private void Update()
@@ -193,6 +224,7 @@ namespace Arena
             {
                 AssController.StopExam();
                 StopCoroutine(pollExamCoroutine);
+                UiController.FailedAttack();
             }
             playerCannotMoveOrAttack = false;
 
@@ -257,7 +289,6 @@ namespace Arena
         /// <summary>
         /// Make all necessary checks before attacking another player
         /// </summary>
-        /// <param name="target"></param>
         public void StartAttackPlayer(IPlayer target)
         {
             if (playerCannotMoveOrAttack) return;
@@ -306,6 +337,9 @@ namespace Arena
         private void FinishAttackPlayer(IPlayer target, bool attackerIsRange)
         {
             currentPlayer.StartAttack();
+            UiController.SuccessfulAttack();
+            AssController.StopExam();
+            StopCoroutine(pollExamCoroutine);
 
             if (attackerIsRange)
             {
