@@ -8,6 +8,8 @@ namespace Arena
 		public GameController Game;
 
 		public SpriteRenderer Sprite;
+		public Sprite SpriteIdle;
+		public Sprite SpriteAttack;
 
 		private void Start()
 		{
@@ -26,7 +28,13 @@ namespace Arena
 
 		public void StartAttack()
 		{
-
+			StartCoroutine(AttackingState());
+		}
+		private IEnumerator AttackingState()
+		{
+			Sprite.sprite = SpriteAttack;
+			yield return new WaitForSeconds(1f);
+			Sprite.sprite = SpriteIdle;
 		}
 
 		public void StopAttack()

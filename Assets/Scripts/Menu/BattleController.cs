@@ -73,7 +73,7 @@ namespace Menu
 			while (true)
 			{
 				PollBattles();
-				yield return new WaitForSeconds(5);
+				yield return new WaitForSeconds(2f);
 			}
 		}
 
@@ -104,7 +104,7 @@ namespace Menu
 				if (currentLobby.Players.All(p => p.IsReady))
 					FinishMatchmaking();
 				
-				yield return new WaitForSeconds(2.5f);
+				yield return new WaitForSeconds(2f);
 			}
 		}
 
@@ -119,6 +119,7 @@ namespace Menu
 			StopCoroutine(lobbyPoller);
 			thisPlayerIndex = -1;
 			thisPlayerReady = false;
+			ChosenBattleText.text = "";
 
 			return true;
 		}
