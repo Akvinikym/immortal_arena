@@ -20,6 +20,8 @@ namespace Arena
 
         public Network.NetworkManager NetManager;
 
+        public AssignmentController AssController;
+
         private int playerNumber;
         private readonly List<IPlayer> alivePlayers = new List<IPlayer>();
         private readonly List<IPlayer> allPlayers = new List<IPlayer>();
@@ -38,7 +40,7 @@ namespace Arena
         // Time, which is left for current player's turn
         private int timeLeft;
 
-        private const int TimeForTurn = 5;
+        private const int TimeForTurn = 20;
         private Coroutine timerCoroutine;
 
         private readonly Dictionary<IPlayer, int> turnSkipsInRow = new Dictionary<IPlayer, int>();
@@ -125,7 +127,9 @@ namespace Arena
                 }
             };
             
-            playerNumber = NetManager.GetPlayerNumber();
+            // TODO: uncomment
+//            playerNumber = NetManager.GetPlayerNumber();
+            playerNumber = 0;
         }
 
         private void Update()
@@ -182,6 +186,8 @@ namespace Arena
                 StopAllCoroutines();
                 return;
             }
+            
+            if (!AssController.ExamIsOver) AssController.StopExam();
 
             // Choose next player
             int nextPlayerIndex;
@@ -260,6 +266,15 @@ namespace Arena
                     Math.Abs(attackerPos.YCoordinate - targetPos.YCoordinate) > 1))
                 return;
             
+            // Start player's exam
+            AssController.StartExam(currentPlayerIsRange);
+            while (!AssController.ExamIsOver) {}
+            if (!AssController.ExamIsSuccesfull)
+            {
+                GiveUpTurn();
+                return;
+            }
+
             currentPlayer.StartAttack();
 
             if (currentPlayerIsRange)
