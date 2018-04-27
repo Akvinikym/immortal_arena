@@ -36,12 +36,14 @@ namespace Arena
 
         private IPlayer currentPlayer;
         private bool currentPlayerMoved;
+        private bool playerCannotMoveOrAttack;
 
         // Time, which is left for current player's turn
         private int timeLeft;
 
-        private const int TimeForTurn = 20;
+        private const int TimeForTurn = 5;
         private Coroutine timerCoroutine;
+        private Coroutine pollExamCoroutine;
 
         private readonly Dictionary<IPlayer, int> turnSkipsInRow = new Dictionary<IPlayer, int>();
 
@@ -186,8 +188,13 @@ namespace Arena
                 StopAllCoroutines();
                 return;
             }
-            
-            if (!AssController.ExamIsOver) AssController.StopExam();
+
+            if (AssController.gameObject.activeInHierarchy)
+            {
+                AssController.StopExam();
+                StopCoroutine(pollExamCoroutine);
+            }
+            playerCannotMoveOrAttack = false;
 
             // Choose next player
             int nextPlayerIndex;
@@ -227,6 +234,8 @@ namespace Arena
 
         public void MovePlayer(PointController newPos)
         {
+            if (playerCannotMoveOrAttack) return;
+            
             if (playerNumber != allPlayers.IndexOf(currentPlayer))
             {
                 Debug.Log("not your turn");
@@ -245,9 +254,14 @@ namespace Arena
             currentPlayerMoved = true;
         }
 
-
-        public void AttackPlayer(IPlayer target)
+        /// <summary>
+        /// Make all necessary checks before attacking another player
+        /// </summary>
+        /// <param name="target"></param>
+        public void StartAttackPlayer(IPlayer target)
         {
+            if (playerCannotMoveOrAttack) return;
+            
             if (playerNumber != allPlayers.IndexOf(currentPlayer))
             {
                 Debug.Log("not your turn");
@@ -258,26 +272,42 @@ namespace Arena
 
             var attackerPos = playersPositions[currentPlayer];
             var targetPos = playersPositions[target];
-            var currentPlayerIsRange = 
+            var currentPlayerIsRange =
                 ReferenceEquals(currentPlayer, Lizard) || ReferenceEquals(currentPlayer, Wizard);
-            
+
             if (!currentPlayerIsRange && (
                     Math.Abs(attackerPos.XCoordinate - targetPos.XCoordinate) > 1 ||
                     Math.Abs(attackerPos.YCoordinate - targetPos.YCoordinate) > 1))
                 return;
-            
+
             // Start player's exam
+            playerCannotMoveOrAttack = true;
             AssController.StartExam(currentPlayerIsRange);
-            while (!AssController.ExamIsOver) {}
-            if (!AssController.ExamIsSuccesfull)
+            pollExamCoroutine = StartCoroutine(PollExam(target, currentPlayerIsRange));
+        }
+
+        private IEnumerator PollExam(IPlayer target, bool attackIsRange)
+        {
+            while (!AssController.ExamIsOver)
+            {
+                yield return new WaitForSeconds(0.5f);
+            }
+            if (AssController.ExamIsSuccesfull)
+                FinishAttackPlayer(target, attackIsRange);
+            else
             {
                 GiveUpTurn();
-                return;
             }
+        }
 
+        /// <summary>
+        /// Attack him
+        /// </summary>
+        private void FinishAttackPlayer(IPlayer target, bool attackerIsRange)
+        {
             currentPlayer.StartAttack();
 
-            if (currentPlayerIsRange)
+            if (attackerIsRange)
             {
                 if (playersHealth[target] != 1)
                 {

@@ -47,6 +47,7 @@ namespace Arena
 
 		private void CheckAnswer(string answer)
 		{
+			if (answer == "") return;
 			ExamIsOver = true;
 			ExamIsSuccesfull = Convert.ToInt32(answer) == rightAnswer;
 		}

@@ -78,7 +78,7 @@ namespace Arena
 		private void OnMouseDown()
 		{
 			// the player was selected as target to hit
-			Game.AttackPlayer(this);
+			Game.StartAttackPlayer(this);
 		}
 	}
 }
