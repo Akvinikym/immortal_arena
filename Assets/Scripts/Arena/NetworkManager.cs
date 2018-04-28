@@ -75,16 +75,14 @@ namespace Network {
 		public Action<int> OnAttackHandler;
 		public Action OnTurnHandler;
 
-		private void Awake() {
+		public void NetworkInit() {
 			Debug.Log ("starting network manager");
 
-			
-//			playerAddresses = BattleController.FinalPlayerToIP;
 			foreach (var ip in BattleController.FinalPlayerToIP)
 			{
 				playerAddresses.Add(ip);
 			}
-
+			
 			cc = new ConnectionConfig();
 			cc.AddChannel(QosType.Reliable);
 			cc.AddChannel(QosType.Reliable);
@@ -187,6 +185,7 @@ namespace Network {
 			{
 				throw new Exception("Player adress is null");
 			}
+			Debug.Log(playerAddresses.Count + "!!!!!");
 			return playerAddresses.IndexOf(GetLocalIP());
 		}
 

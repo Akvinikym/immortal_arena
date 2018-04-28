@@ -27,6 +27,7 @@ namespace Arena
 
 		public Text CurrentTurn;
 		public Text Timeout;
+		public Text PlayerRole;
 
 		public GameObject WinScript;
 		public Text WinMessage;
@@ -105,6 +106,11 @@ namespace Arena
 		public void UpdateTimer(int leftTime)
 		{
 			Timeout.text = string.Format("Time left: {0}", leftTime);
+		}
+
+		public void SetPlayerName(string name)
+		{
+			PlayerRole.text = string.Format("You are\n{0}", name);
 		}
 
 		public void FinishGame(IPlayer winner)

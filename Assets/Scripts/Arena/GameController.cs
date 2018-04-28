@@ -38,7 +38,7 @@ namespace Arena
         // Time, which is left for current player's turn
         private int timeLeft;
 
-        private const int TimeForTurn = 10;
+        private const int TimeForTurn = 20;
         private Coroutine timerCoroutine;
         private Coroutine pollExamCoroutine;
 
@@ -49,6 +49,8 @@ namespace Arena
 
         private void Start()
         {
+            NetManager.NetworkInit();
+            
             // Choose, who will be the first
             currentPlayer = Lizard;
 
@@ -97,6 +99,42 @@ namespace Arena
                     StopAllCoroutines();
                     return;
                 }
+                
+                if (AssController.gameObject.activeInHierarchy)
+                {
+                    AssController.StopExam();
+                    StopCoroutine(pollExamCoroutine);
+                    UiController.FailedAttack();
+                }
+
+//                var timeoutKilledPlayerIndex = -1;
+//                if (turnSkipsInRow[currentPlayer] >= 2)
+//                {
+//                    timeoutKilledPlayerIndex = alivePlayers.IndexOf(currentPlayer);
+//                    KillPlayer(currentPlayer);
+//                    UiController.KillPlayer(currentPlayer);
+//                }
+//                
+//                int nextPlayerIndex;
+//                if (timeoutKilledPlayerIndex >= 0)
+//                {
+//                    nextPlayerIndex = timeoutKilledPlayerIndex == alivePlayers.Count ? 0 : timeoutKilledPlayerIndex;
+//                }
+//                else
+//                {
+//                    var currentPlayerIndex = alivePlayers.IndexOf(currentPlayer);
+//                    nextPlayerIndex = currentPlayerIndex == alivePlayers.Count - 1 ? 0 : currentPlayerIndex + 1;
+//                }
+//                
+//                currentPlayer = alivePlayers[nextPlayerIndex];
+//
+//                currentPlayerMoved = false;
+//                currentPlayer.SetActive();
+//
+//                UiController.SetTurn(currentPlayer);
+//
+//                StopCoroutine(timerCoroutine);
+//                timerCoroutine = StartCoroutine(StartTimer());
 
                 currentPlayer = alivePlayers[(alivePlayers.IndexOf(currentPlayer) + 1) % alivePlayers.Count];
                 UiController.SetTurn(currentPlayer);
@@ -162,7 +200,7 @@ namespace Arena
                 }
             };
             playerNumber = NetManager.GetPlayerNumber();
-            Debug.Log(playerNumber);
+            UiController.SetPlayerName(allPlayers[playerNumber].GetStringName());
         }
 
         private void Update()
@@ -194,11 +232,11 @@ namespace Arena
                 UiController.KillPlayer(currentPlayer);
                 killPlayer = true;
             }
-            GiveUpTurn(false, killPlayer, index);
+            GiveUpTurn(false, killPlayer, index, true);
         }
 
         private void GiveUpTurn(bool respectOrder = true,
-            bool playerWasTimeoutKilled = false, int timeoutKilledPlayerIndex = -1)
+            bool playerWasTimeoutKilled = false, int timeoutKilledPlayerIndex = -1, bool timeoutExceeded = false)
         {
             if (playerNumber != allPlayers.IndexOf(currentPlayer) && respectOrder)
             {
@@ -244,9 +282,9 @@ namespace Arena
             StopCoroutine(timerCoroutine);
             timerCoroutine = StartCoroutine(StartTimer());
 
-//			if (respectOrder) {
-            NetManager.NextTurn();
-//			}
+			if (!timeoutExceeded) {
+                NetManager.NextTurn();
+			}
         }
 
         private void KillPlayer(IPlayer target)
@@ -273,7 +311,7 @@ namespace Arena
 
             playersPositions[currentPlayer] = newPos;
             var pos = newPos.gameObject.transform.position;
-            currentPlayer.GetGameObject().transform.position = new Vector3(pos.x, pos.y, 1);
+            currentPlayer.GetGameObject().transform.position = new Vector3(pos.x, pos.y, 0);
 
             NetManager.Move(allPlayers.IndexOf(currentPlayer), newPos.XCoordinate, newPos.YCoordinate);
 
