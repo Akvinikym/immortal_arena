@@ -150,7 +150,7 @@ namespace Arena
                 currentPlayer.StartAttack();
                 var attackerIsRange = 
                     ReferenceEquals(currentPlayer, Lizard) || ReferenceEquals(currentPlayer, Wizard);
-                var targetVar = alivePlayers[target];
+                var targetVar = allPlayers[target];
 
                 if (attackerIsRange)
                 {
@@ -420,7 +420,7 @@ namespace Arena
                 }
             }
 
-            NetManager.Attack(alivePlayers.IndexOf(target));
+            NetManager.Attack(allPlayers.IndexOf(target));
 
             GiveUpTurn();
         }
