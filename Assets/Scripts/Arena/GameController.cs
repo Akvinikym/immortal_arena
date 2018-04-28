@@ -353,7 +353,7 @@ namespace Arena
         {
             while (!AssController.ExamIsOver)
             {
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(0.1f);
             }
             if (AssController.ExamIsSuccesfull)
                 FinishAttackPlayer(target, attackIsRange);
@@ -420,7 +420,7 @@ namespace Arena
                 }
             }
 
-            NetManager.Attack(allPlayers.IndexOf(target));
+            NetManager.Attack(alivePlayers.IndexOf(target));
 
             GiveUpTurn();
         }

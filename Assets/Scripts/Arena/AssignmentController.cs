@@ -35,9 +35,9 @@ namespace Arena
 			}
 			else
 			{
-				var x = rand.Next(12, 19);
-				var y = rand.Next(12, 29);
-				var z = rand.Next(1, 49);
+				var x = rand.Next(11, 19);
+				var y = rand.Next(11, 19);
+				var z = rand.Next(11, 29);
 				Assignment.text = string.Format("{0} * {1} + {2}", x, y, z);
 				rightAnswer = x * y + z;
 			}

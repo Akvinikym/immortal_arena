@@ -108,24 +108,10 @@ namespace Network {
 				client.RegisterHandler (MessageTypes.MSG_MOVE, OnMove);
 				client.RegisterHandler (MessageTypes.MSG_TURN, OnTurn);
 				client.RegisterHandler (MessageTypes.MSG_ATTACK, OnAttack);
-				client.RegisterHandler(MsgType.Error, OnError);
-				client.RegisterHandler(MsgType.Disconnect, OnDisconnect);
 				client.Configure (cc, 10);
 				client.Connect (t, 4444);
 				clients.Add (client);
 			}
-		}
-
-		private void OnError(NetworkMessage netMsg)
-		{
-			ErrorMessage error = netMsg.ReadMessage<ErrorMessage>();
-			Debug.Log("Error while connecting: " + error.errorCode);
-		}
-
-		private void OnDisconnect(NetworkMessage netMsg)
-		{
-			ErrorMessage error = netMsg.ReadMessage<ErrorMessage>();
-			Debug.Log("Disconnected: " + error.errorCode);
 		}
 		
 		public void OnConnected(NetworkMessage netMsg)
