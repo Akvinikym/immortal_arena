@@ -27,7 +27,10 @@ namespace Menu
             public bool IsReady;
         }
 
-        private string serverAddress = "http://52.14.142.64:8080";
+        /*
+        Specify IP address of matchmaking server here
+        */
+        private string serverAddress = "";
         
         private const string createLobby = "/create";
         private const string getLobby = "/lobby?lobby_id=";
