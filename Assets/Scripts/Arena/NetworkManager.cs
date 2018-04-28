@@ -5,6 +5,8 @@ using UnityEngine.Networking;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using Menu;
+using UnityEngine.Networking.NetworkSystem;
 
 namespace Network {
 
@@ -63,7 +65,7 @@ namespace Network {
 
 	public class NetworkManager : NetworkBehaviour {
 
-		private List<string> playerAddresses;
+		public static readonly List<string> playerAddresses = new List<string>();
 		private ConnectionConfig cc;
 		private List<NetworkClient> clients;
 
@@ -75,21 +77,32 @@ namespace Network {
 
 		private void Awake() {
 			Debug.Log ("starting network manager");
-			playerAddresses = new List<string>{"192.168.0.177", "192.168.0.179"};
+
+			
+//			playerAddresses = BattleController.FinalPlayerToIP;
+			foreach (var ip in BattleController.FinalPlayerToIP)
+			{
+				playerAddresses.Add(ip);
+			}
 
 			cc = new ConnectionConfig();
 			cc.AddChannel(QosType.Reliable);
-
+			cc.AddChannel(QosType.Reliable);
+			cc.AddChannel(QosType.Reliable);
+			cc.AddChannel(QosType.Reliable);
+			
 			NetworkServer.Configure(cc, 10);
 			NetworkServer.Listen(4444);
-
 			clients = new List<NetworkClient> ();
-
+			
+			Connect();
 		}
 
-		public void Connect() {
-			foreach (var address in playerAddresses) {
-				if (GetLocalIP () == address) {
+		public void Connect()
+		{
+			foreach (string t in playerAddresses)
+			{
+				if (GetLocalIP () == t) {
 					continue;
 				}
 				var client = new NetworkClient ();
@@ -97,12 +110,26 @@ namespace Network {
 				client.RegisterHandler (MessageTypes.MSG_MOVE, OnMove);
 				client.RegisterHandler (MessageTypes.MSG_TURN, OnTurn);
 				client.RegisterHandler (MessageTypes.MSG_ATTACK, OnAttack);
+				client.RegisterHandler(MsgType.Error, OnError);
+				client.RegisterHandler(MsgType.Disconnect, OnDisconnect);
 				client.Configure (cc, 10);
-				client.Connect (address, 4444);
+				client.Connect (t, 4444);
 				clients.Add (client);
 			}
 		}
 
+		private void OnError(NetworkMessage netMsg)
+		{
+			ErrorMessage error = netMsg.ReadMessage<ErrorMessage>();
+			Debug.Log("Error while connecting: " + error.errorCode);
+		}
+
+		private void OnDisconnect(NetworkMessage netMsg)
+		{
+			ErrorMessage error = netMsg.ReadMessage<ErrorMessage>();
+			Debug.Log("Disconnected: " + error.errorCode);
+		}
+		
 		public void OnConnected(NetworkMessage netMsg)
 		{
 			Debug.Log("connected to server " + netMsg.conn.address);
@@ -156,6 +183,10 @@ namespace Network {
 		}
 
 		public int GetPlayerNumber() {
+			if (playerAddresses == null)
+			{
+				throw new Exception("Player adress is null");
+			}
 			return playerAddresses.IndexOf(GetLocalIP());
 		}
 

@@ -33,7 +33,7 @@ namespace Arena
 
         private IPlayer currentPlayer;
         private bool currentPlayerMoved;
-        private bool playerCannotMoveOrAttack;
+        private bool playerCannotMoveOrAttack = false;
 
         // Time, which is left for current player's turn
         private int timeLeft;
@@ -161,8 +161,8 @@ namespace Arena
                     }
                 }
             };
-            
             playerNumber = NetManager.GetPlayerNumber();
+            Debug.Log(playerNumber);
         }
 
         private void Update()
@@ -171,12 +171,6 @@ namespace Arena
             {
                 // Player gives up the turn
                 GiveUpTurn();
-            }
-            if (Input.GetKeyDown("return"))
-            {
-                Debug.Log("pressing enter");
-                // Player gives up the turn
-                NetManager.Connect();
             }
         }
 

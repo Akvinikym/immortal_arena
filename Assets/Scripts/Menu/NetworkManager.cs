@@ -27,7 +27,7 @@ namespace Menu
             public bool IsReady;
         }
 
-        private string serverAddress;
+        private string serverAddress = "http://52.14.142.64:8080";
         
         private const string createLobby = "/create";
         private const string getLobby = "/lobby?lobby_id=";
@@ -44,13 +44,6 @@ namespace Menu
                     return ip.ToString();
             }
             return "";
-        }
-
-        private void Start()
-        {
-            var file = new StreamReader(@"Assets/Scripts/Arena/server_ip.txt");
-            serverAddress = "http://" + file.ReadLine();
-            file.Close();
         }
 
         /// <summary>

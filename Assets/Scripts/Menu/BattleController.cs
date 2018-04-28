@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -240,6 +241,14 @@ namespace Menu
 		/// </summary>
 		private void FinishMatchmaking()
 		{
+			if (playerToIP == null)
+			{
+				throw new Exception("Final player to IP is null");
+			}
+			foreach (var ip in playerToIP.Values.ToList())
+			{
+				Debug.Log(ip);
+			}
 			FinalPlayerToIP = playerToIP.Values.ToList();
 			Network.DeleteLobby(currentLobby.Id);
 			SceneManager.LoadScene("GameScene");
